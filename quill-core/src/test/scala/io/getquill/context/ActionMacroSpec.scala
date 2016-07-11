@@ -26,6 +26,23 @@ class ActionMacroSpec extends Spec {
     }
   }
 
+  "runs with returning value" - {
+    "assinged" in {
+      val q = quote {
+        qr1.insert(_.i -> 1).returning(_.l)
+      }
+
+      testContext.run(q).ast mustEqual q.ast
+    }
+    "unassinged" in {
+      val q = quote {
+        qr1.insert.returning(_.l)
+      }
+
+      //      testContext.run(q)(List(TestEntity("s", 1, 1L, None))).ast mustEqual q.ast
+    }
+  }
+
   "runs batched action" - {
     "one param" in {
       val q = quote {

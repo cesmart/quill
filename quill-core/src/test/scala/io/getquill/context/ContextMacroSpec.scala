@@ -33,7 +33,7 @@ class ContextMacroSpec extends Spec {
         testContext.run(q).ast mustEqual q.ast
       }
       "dynamic" in {
-        val q: Quoted[Action[TestEntity]] = quote {
+        val q: Quoted[Action[Long]] = quote {
           qr1.delete
         }
         testContext.run(q).ast mustEqual q.ast

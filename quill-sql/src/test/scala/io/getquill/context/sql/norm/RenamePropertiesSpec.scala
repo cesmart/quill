@@ -47,7 +47,7 @@ class RenamePropertiesSpec extends Spec {
           "UPDATE test_entity SET field_s = ?, field_i = ?, l = ?, o = ? WHERE field_i = 999"
       }
       "delete" in {
-        val q: Quoted[Delete[TestEntity]] = quote {
+        val q: Quoted[Delete[Long]] = quote {
           e.filter(_.i == 999).delete
         }
         testContext.run(q).sql mustEqual

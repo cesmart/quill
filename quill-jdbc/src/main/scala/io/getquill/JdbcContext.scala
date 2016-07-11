@@ -35,8 +35,8 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
 
   protected type QueryResult[T] = List[T]
   protected type SingleQueryResult[T] = T
-  protected type ActionResult[T] = Long
-  protected type BatchedActionResult[T] = List[Long]
+  protected type ActionResult[T] = T
+  protected type BatchedActionResult[T] = List[T]
 
   private val currentConnection = new DynamicVariable[Option[Connection]](None)
 

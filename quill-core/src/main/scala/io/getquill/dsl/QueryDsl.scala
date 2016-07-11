@@ -60,11 +60,19 @@ private[dsl] trait QueryDsl {
     override def filter(f: T => Boolean): EntityQuery[T]
     override def map[R](f: T => R): EntityQuery[R]
 
-    def insert: T => UnassignedAction[T] with Insert[T]
-    def insert(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Insert[T]
-    def update: T => UnassignedAction[T] with Update[T]
-    def update(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Update[T]
-    def delete: Delete[T]
+    def insert: T => UnassignedAction[Long] with Insert[T, Long]
+    def insert(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Insert[T, Long]
+    def update: T => UnassignedAction[Long] with Update[Long]
+    def update(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Update[Long]
+    def delete: Delete[Long]
+  }
+
+  implicit class InsertUnassignedAction[T](i: T => UnassignedAction[_] with Insert[T, _]) {
+    def returning[R](f: T => R): R => UnassignedAction[R] with Insert[T, R] = NonQuotedException()
+  }
+
+  implicit class InsertAssignedAction[T](i: Insert[T, _]) {
+    def returning[R](f: T => R): Insert[T, R] = NonQuotedException()
   }
 
   sealed trait Schema[T] {
@@ -75,7 +83,7 @@ private[dsl] trait QueryDsl {
 
   sealed trait Action[T]
 
-  sealed trait Insert[T] extends Action[T]
+  sealed trait Insert[T, R] extends Action[R]
   sealed trait Update[T] extends Action[T]
   sealed trait Delete[T] extends Action[T]
 

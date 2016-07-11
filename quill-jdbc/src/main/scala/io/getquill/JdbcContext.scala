@@ -33,10 +33,10 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
   private val logger: Logger =
     Logger(LoggerFactory.getLogger(classOf[JdbcContext[_, _]]))
 
-  protected type QueryResult[T] = List[T]
-  protected type SingleQueryResult[T] = T
-  protected type ActionResult[T] = T
-  protected type BatchedActionResult[T] = List[T]
+  type QueryResult[T] = List[T]
+  type SingleQueryResult[T] = T
+  type ActionResult[T] = T
+  type BatchedActionResult[T] = List[T]
 
   private val currentConnection = new DynamicVariable[Option[Connection]](None)
 

@@ -36,8 +36,7 @@ lazy val `quill-jdbc` =
         "mysql"          % "mysql-connector-java" % "5.1.38"  % "test",
         "com.h2database" % "h2"                   % "1.4.192" % "test",
         "org.postgresql" % "postgresql"           % "9.4.1208" % "test"
-      ),
-      parallelExecution in Test := false
+      )
     )
     .dependsOn(`quill-sql` % "compile->compile;test->test")
 
@@ -48,8 +47,7 @@ lazy val `quill-finagle-mysql` =
     .settings(
       libraryDependencies ++= Seq(
         "com.twitter" %% "finagle-mysql" % "6.35.0"
-      ),
-      parallelExecution in Test := false
+      )
     )
     .dependsOn(`quill-sql` % "compile->compile;test->test")
 
@@ -62,8 +60,7 @@ lazy val `quill-async` =
         "com.github.mauricio" %% "db-async-common"  % "0.2.20",
         "com.github.mauricio" %% "mysql-async"      % "0.2.20",
         "com.github.mauricio" %% "postgresql-async" % "0.2.20"
-      ),
-      parallelExecution in Test := false
+      )
     )
     .dependsOn(`quill-sql` % "compile->compile;test->test")
 
@@ -75,8 +72,7 @@ lazy val `quill-cassandra` =
       libraryDependencies ++= Seq(
         "com.datastax.cassandra" %  "cassandra-driver-core" % "3.0.2",
         "org.monifu"             %% "monifu"                % "1.2"
-      ),
-      parallelExecution in Test := false
+      )
     )
     .dependsOn(`quill-core` % "compile->compile;test->test")
 
@@ -111,6 +107,47 @@ lazy val mimaSettings = MimaPlugin.mimaDefaultSettings ++ Seq(
   }
 )
 
+commands += Command.command("checkUnformattedFiles") { st =>
+  val vcs = Project.extract(st).get(releaseVcs).get
+  if(vcs.hasModifiedFiles)
+    throw new IllegalStateException("Found unformatted files. Please run `sbt scalariformFormat test:scalariformFormat` and resubmit your pull request.")
+  st
+}
+
+def updateReadmeVersion(selectVersion: sbtrelease.Versions => String) = 
+  ReleaseStep(action = st => {
+
+    val newVersion = selectVersion(st.get(ReleaseKeys.versions).get)
+
+    import scala.io.Source
+    import java.io.PrintWriter
+
+    val pattern = """"io.getquill" %% "quill-.*" % "(.*)"""".r
+
+    val fileName = "README.md"
+    val content = Source.fromFile(fileName).getLines.mkString("\n")
+
+    val newContent =
+      pattern.replaceAllIn(content,
+        m => m.matched.replaceAllLiterally(m.subgroups.head, newVersion))
+
+    new PrintWriter(fileName) { write(newContent); close }
+
+    val vcs = Project.extract(st).get(releaseVcs).get
+    vcs.add(fileName).!
+
+    st
+  })
+
+def updateWebsiteTag = 
+  ReleaseStep(action = st => {
+
+    val vcs = Project.extract(st).get(releaseVcs).get
+    vcs.tag("website", "update website", force = true).!
+
+    st
+  })
+
 lazy val commonSettings = ReleasePlugin.extraReleaseCommands ++ Seq(
   organization := "io.getquill",
   scalaVersion := "2.11.8",
@@ -139,6 +176,7 @@ lazy val commonSettings = ReleasePlugin.extraReleaseCommands ++ Seq(
     "-Ywarn-unused-import"
   ),
   fork in Test := true,
+  concurrentRestrictions in Global += Tags.limit(Tags.Test, 1),
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   scoverage.ScoverageKeys.coverageMinimum := 96,
   scoverage.ScoverageKeys.coverageFailOnMinimum := false,
@@ -177,10 +215,13 @@ lazy val commonSettings = ReleasePlugin.extraReleaseCommands ++ Seq(
     runClean,
     runTest,
     setReleaseVersion,
+    updateReadmeVersion(_._1),
     commitReleaseVersion,
+    updateWebsiteTag,
     tagRelease,
     ReleaseStep(action = Command.process("publishSigned", _)),
     setNextVersion,
+    updateReadmeVersion(_._2),
     commitNextVersion,
     ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),
     pushChanges

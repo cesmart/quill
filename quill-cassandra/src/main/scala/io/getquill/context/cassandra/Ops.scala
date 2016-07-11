@@ -16,7 +16,7 @@ trait Ops {
   implicit class EntityOps[A <: EntityQuery[_]](q: A)
     extends Options(q)
 
-  implicit class InsertOps[A <: Insert[_]](q: A)
+  implicit class InsertOps[A <: Insert[_, _]](q: A)
     extends Options(q) {
     def ifNotExists = quote(infix"$q IF NOT EXISTS".as[A])
   }

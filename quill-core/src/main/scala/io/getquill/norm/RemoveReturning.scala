@@ -7,6 +7,8 @@ object RemoveReturning extends StatelessTransformer {
     e match {
       case AssignedAction(FunctionApply(Returning(action, returning), values), assignments) =>
         AssignedAction(FunctionApply(action, values), assignments.filterNot(_.property == returning))
+      case Returning(AssignedAction(action, assignments), returning) =>
+        AssignedAction(action, assignments.filterNot(_.property == returning))
       case _ => super.apply(e)
     }
   }

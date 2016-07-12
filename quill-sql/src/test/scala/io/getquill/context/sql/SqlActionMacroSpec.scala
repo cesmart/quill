@@ -51,7 +51,7 @@ class SqlActionMacroSpec extends Spec {
         mirror.bindList mustEqual List(Row("s", 1))
       }
     }
-    "with returning values" in {
+    "with returning" in {
       val q = quote {
         qr1.insert.returning(_.l)
       }
@@ -59,6 +59,16 @@ class SqlActionMacroSpec extends Spec {
       val mirror = testContext.run(q)(List(TestEntity("s", 0, 1L, None)))
       mirror.sql mustEqual "INSERT INTO TestEntity (s,i,o) VALUES (?, ?, ?)"
       mirror.generated mustEqual Some("l")
+    }
+    "with assigned values and returning" in {
+      val q = quote {
+        qr1.insert(_.s -> "s", _.i -> 0).returning(_.l)
+      }
+      val a = TestEntity
+      val mirror = testContext.run(q)
+      mirror.sql mustEqual "INSERT INTO TestEntity (s,i) VALUES ('s', 0)"
+      mirror.generated mustEqual Some("l")
+
     }
   }
 }

@@ -54,15 +54,15 @@ class RenamePropertiesSpec extends Spec {
           "DELETE FROM test_entity WHERE field_i = 999"
       }
     }
-    //    "returning" - {
-    //      "alias" in {
-    //        val q = quote {
-    //          e.insert.returning(_.i)
-    //        }
-    //        val mirror = testContext.run(q)(TestEntity("s", 1, 1L, None))
-    //        mirror.generated mustEqual Some("field_i")
-    //      }
-    //    }
+    "returning" - {
+      "alias" in {
+        val q = quote {
+          e.insert.returning(_.i)
+        }
+        val mirror = testContext.run(q)(TestEntity("s", 1, 1L, None))
+        mirror.generated mustEqual Some("field_i")
+      }
+    }
     "flatMap" - {
       "body" in {
         val q = quote {

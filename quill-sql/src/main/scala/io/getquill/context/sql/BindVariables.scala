@@ -1,13 +1,6 @@
 package io.getquill.context.sql
 
-import io.getquill.ast.Ast
-import io.getquill.ast.Drop
-import io.getquill.ast.Ident
-import io.getquill.ast.Map
-import io.getquill.ast.Query
-import io.getquill.ast.RuntimeBinding
-import io.getquill.ast.StatefulTransformer
-import io.getquill.ast.Take
+import io.getquill.ast._
 
 private[context] case class BindVariables(state: (List[Ident], List[Ident]))
   extends StatefulTransformer[(List[Ident], List[Ident])] {
@@ -37,6 +30,16 @@ private[context] case class BindVariables(state: (List[Ident], List[Ident]))
         val (ct, ctt) = apply(c)
         val (at, att) = ctt.apply(a)
         (Map(at, b, ct), att)
+      case other =>
+        super.apply(other)
+    }
+
+  override def apply(e: Action) =
+    e match {
+      case AssignedAction(Update(Filter(table: Entity, x, where)), assignments) =>
+        val (at, att) = apply(assignments)(_.apply)
+        val (wt, wtt) = att.apply(where)
+        (AssignedAction(Update(Filter(table, x, wt)), at), wtt)
       case other =>
         super.apply(other)
     }

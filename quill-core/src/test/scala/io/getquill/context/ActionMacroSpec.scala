@@ -1,7 +1,7 @@
 package io.getquill.context
 
 import io.getquill.Spec
-import io.getquill.ast.Function
+import io.getquill.ast.{ AssignedAction, Function, FunctionApply }
 import io.getquill.context.mirror.Row
 import io.getquill.testContext
 import io.getquill.testContext.TestEntity
@@ -31,15 +31,19 @@ class ActionMacroSpec extends Spec {
       val q = quote {
         qr1.insert(_.i -> 1).returning(_.l)
       }
+      val r = testContext.run(q)
+      r.ast mustEqual q.ast
+      r.returning mustEqual Some("l")
 
-      testContext.run(q).ast mustEqual q.ast
     }
     "unassinged" in {
       val q = quote {
         qr1.insert.returning(_.l)
       }
-
-      //      testContext.run(q)(List(TestEntity("s", 1, 1L, None))).ast mustEqual q.ast
+      val r = testContext.run(q)(List(TestEntity("s", 1, 1L, None)))
+      val AssignedAction(FunctionApply(ast, _), _) = r.ast
+      ast mustEqual q.ast
+      r.returning mustEqual Some("l")
     }
   }
 

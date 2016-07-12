@@ -62,15 +62,15 @@ private[dsl] trait QueryDsl {
     override def filter(f: T => Boolean): EntityQuery[T]
     override def map[R](f: T => R): EntityQuery[R]
 
-    def insert: T => UnassignedAction[Long] with Insert[T, Long]
+    def insert: T => UnassignedAction[T] with Insert[T, Long]
     def insert(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Insert[T, Long]
-    def update: T => UnassignedAction[Long] with Update[T, Long]
+    def update: T => UnassignedAction[T] with Update[T, Long]
     def update(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Update[T, Long]
     def delete: Delete[Long]
   }
 
   implicit class InsertUnassignedAction[T](i: T => UnassignedAction[_] with Insert[T, _]) {
-    def returning[R](f: T => R): R => UnassignedAction[R] with Insert[T, R] = NonQuotedException()
+    def returning[R](f: T => R): T => UnassignedAction[R] with Insert[T, R] = NonQuotedException()
   }
 
   implicit class InsertAssignedAction[T](i: Insert[T, _]) {

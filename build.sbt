@@ -175,7 +175,7 @@ lazy val commonSettings = ReleasePlugin.extraReleaseCommands ++ Seq(
     "-Xfuture",
     "-Ywarn-unused-import"
   ),
-  fork in Test := true,
+  fork in Test := false,
   concurrentRestrictions in Global += Tags.limit(Tags.Test, 1),
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   scoverage.ScoverageKeys.coverageMinimum := 96,

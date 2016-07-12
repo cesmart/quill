@@ -401,13 +401,11 @@ trait Parsing extends EntityConfigParsing {
       Function(List(Ident("x1")), Insert(astParser(query)))
     case q"$query.delete" =>
       Delete(astParser(query))
-    case q"$pack.InsertAssignedAction[$t]($query).returning[$r](($alias) => $body)" =>
-      astParser(query)
-    case q"$pack.InsertUnassignedAction[$t]($query).returning[$r](($alias) => $body)" =>
-      astParser(query)
+    case q"$pack.InsertAssignedAction[$t]($query).returning[$r](($alias) => $e.$property)" =>
+      Returning(astParser(query), property.decodedName.toString)
+    case q"$pack.InsertUnassignedAction[$t]($query).returning[$r](($alias) => $e.$property)" =>
+      Returning(astParser(query), property.decodedName.toString)
   }
-
-  // getquill.this.testContext.InsertUnassignedAction[io.getquill.testContext.TestEntity](io.getquill.testContext.unquote[io.getquill.testContext.EntityQuery[io.getquill.testContext.TestEntity]](io.getquill.testContext.qr1).insert).returning[Long](((x$5: io.getquill.testContext.TestEntity) => x$5.l))
 
   private val assignmentParser: Parser[Assignment] = Parser[Assignment] {
     case q"((${ identParser(i1) }) => $pack.Predef.ArrowAssoc[$t](${ identParser(i2) }.$prop).$arrow[$v]($value))" if (i1 == i2) =>

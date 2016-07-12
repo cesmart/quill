@@ -64,8 +64,8 @@ private[dsl] trait QueryDsl {
 
     def insert: T => UnassignedAction[Long] with Insert[T, Long]
     def insert(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Insert[T, Long]
-    def update: T => UnassignedAction[Long] with Update[Long]
-    def update(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Update[Long]
+    def update: T => UnassignedAction[Long] with Update[T, Long]
+    def update(f: (T => (Any, Any)), f2: (T => (Any, Any))*): Update[T, Long]
     def delete: Delete[Long]
   }
 
@@ -86,7 +86,7 @@ private[dsl] trait QueryDsl {
   sealed trait Action[T]
 
   sealed trait Insert[T, R] extends Action[R]
-  sealed trait Update[T] extends Action[T]
+  sealed trait Update[T, R] extends Action[R]
   sealed trait Delete[T] extends Action[T]
 
   sealed trait UnassignedAction[T] extends Action[T]

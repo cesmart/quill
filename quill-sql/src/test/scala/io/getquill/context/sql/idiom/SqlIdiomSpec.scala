@@ -654,13 +654,13 @@ class SqlIdiomSpec extends Spec {
           testContext.run(q).sql mustEqual
             "INSERT INTO TestEntity (i,s) VALUES ((SELECT MAX(t.i) FROM TestEntity2 t), 's')"
         }
-        "generated" in {
-          val q = quote {
-            query[TestEntity].schema(_.generated(_.i)).insert
-          }
-          val run = testContext.run(q)(List(TestEntity("s", 1, 2L, Some(1)))).sql mustEqual
-            "INSERT INTO TestEntity (s,l,o) VALUES (?, ?, ?)"
-        }
+        //        "returning" in {
+        //          val q = quote {
+        //            query[TestEntity].insert.returning(_.l)
+        //          }
+        //          val run = testContext.run(q)(List(TestEntity("s", 1, 2L, Some(1)))).sql mustEqual
+        //            "INSERT INTO TestEntity (s,i,o) VALUES (?, ?, ?)"
+        //        }
       }
       "update" - {
         "with filter" in {

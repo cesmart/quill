@@ -15,7 +15,7 @@ import io.getquill.context.sql.testContext
 class RenamePropertiesSpec extends Spec {
 
   val e = quote {
-    query[TestEntity].schema(_.entity("test_entity").columns(_.s -> "field_s", _.i -> "field_i").generated(_.i))
+    query[TestEntity].schema(_.entity("test_entity").columns(_.s -> "field_s", _.i -> "field_i"))
   }
 
   val f = quote {
@@ -54,16 +54,15 @@ class RenamePropertiesSpec extends Spec {
           "DELETE FROM test_entity WHERE field_i = 999"
       }
     }
-    "generated" - {
-      "alias" in {
-        val q = quote {
-          e.insert
-        }
-        val mirror = testContext.run(q)(TestEntity("s", 1, 1L, None))
-        mirror.generated mustEqual Some("field_i")
-      }
-
-    }
+    //    "returning" - {
+    //      "alias" in {
+    //        val q = quote {
+    //          e.insert.returning(_.i)
+    //        }
+    //        val mirror = testContext.run(q)(TestEntity("s", 1, 1L, None))
+    //        mirror.generated mustEqual Some("field_i")
+    //      }
+    //    }
     "flatMap" - {
       "body" in {
         val q = quote {

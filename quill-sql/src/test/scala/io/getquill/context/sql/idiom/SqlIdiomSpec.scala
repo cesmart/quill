@@ -806,7 +806,7 @@ class SqlIdiomSpec extends Spec {
           "SELECT x.s, x.i, x.l, x.o FROM (SELECT * FROM TestEntity) x"
       }
       "full infix action" in {
-        testContext.run(infix"DELETE FROM TestEntity".as[Action[TestEntity]]).sql mustEqual
+        testContext.run(infix"DELETE FROM TestEntity".as[Action[TestEntity, Long]]).sql mustEqual
           "DELETE FROM TestEntity"
       }
     }

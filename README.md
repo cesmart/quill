@@ -821,8 +821,8 @@ The `forUpdate` quotation can be reused for multiple queries.
 The same approach can be used for `RETURNING ID`:
 
 ```scala
-implicit class ReturningId[T](a: Action[T]) {
-  def returningId = quote(infix"$a RETURNING ID".as[Action[T]])
+implicit class ReturningId[T, O](a: Action[T, O]) {
+  def returningId = quote(infix"$a RETURNING ID".as[Action[T, O]])
 }
 
 val a = quote {

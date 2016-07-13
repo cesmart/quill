@@ -31,7 +31,7 @@ trait ActionMacro extends EncodingMacro {
         val encodedParams = EncodeParams[S](c)(inPlaceParams, collection.Map())
         expandedTreeSingle(quotedTree, action, inPlaceParams.map(_._1).toList, encodedParams)
 
-      case List((param, tpe)) if (t.tpe.erasure <:< c.weakTypeOf[CoreDsl#UnassignedAction[Any]].erasure) =>
+      case List((param, tpe)) if (t.tpe.erasure <:< c.weakTypeOf[CoreDsl#UnassignedAction[Any, Any]].erasure) =>
         val encodingValue = encoding(param, Encoding.inferEncoder[S](c))(c.WeakTypeTag(tpe))
         val bindings = bindingMap(encodingValue)
         val idents = bindings.map(_._1).toList

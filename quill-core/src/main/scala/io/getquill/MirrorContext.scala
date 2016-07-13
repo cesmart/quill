@@ -28,10 +28,10 @@ class MirrorContext
   def run[P1, P2, T](quoted: Quoted[(P1, P2) => Query[T]]): (P1, P2) => QueryMirror[T] = macro MirrorContextMacro.run[Row, Row]
   def run[P1, P2, P3, T](quoted: Quoted[(P1, P2, P3) => Query[T]]): (P1, P2, P3) => QueryMirror[T] = macro MirrorContextMacro.run[Row, Row]
 
-  def run[T](quoted: Quoted[Action[T]]): ActionMirror = macro MirrorContextMacro.run[Row, Row]
-  def run[P1, T](quoted: Quoted[P1 => Action[T]]): List[P1] => BatchActionMirror = macro MirrorContextMacro.run[Row, Row]
-  def run[P1, P2, T](quoted: Quoted[(P1, P2) => Action[T]]): List[(P1, P2)] => BatchActionMirror = macro MirrorContextMacro.run[Row, Row]
-  def run[P1, P2, P3, T](quoted: Quoted[(P1, P2, P3) => Action[T]]): List[(P1, P2, P3)] => BatchActionMirror = macro MirrorContextMacro.run[Row, Row]
+  def run[T, O](quoted: Quoted[Action[T, O]]): ActionMirror = macro MirrorContextMacro.run[Row, Row]
+  def run[P1, T, O](quoted: Quoted[P1 => Action[T, O]]): List[P1] => BatchActionMirror = macro MirrorContextMacro.run[Row, Row]
+  def run[P1, P2, T, O](quoted: Quoted[(P1, P2) => Action[T, O]]): List[(P1, P2)] => BatchActionMirror = macro MirrorContextMacro.run[Row, Row]
+  def run[P1, P2, P3, T, O](quoted: Quoted[(P1, P2, P3) => Action[T, O]]): List[(P1, P2, P3)] => BatchActionMirror = macro MirrorContextMacro.run[Row, Row]
 
   def run[T](quoted: Quoted[T]): QueryMirror[T] = macro MirrorContextMacro.run[Row, Row]
   def run[P1, T](quoted: Quoted[P1 => T]): P1 => QueryMirror[T] = macro MirrorContextMacro.run[Row, Row]

@@ -35,8 +35,8 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
 
   type QueryResult[T] = List[T]
   type SingleQueryResult[T] = T
-  type ActionResult[T] = Long
-  type BatchedActionResult[T] = List[Long]
+  type ActionResult[T, O] = O
+  type BatchedActionResult[T, O] = List[O]
 
   private val currentConnection = new DynamicVariable[Option[Connection]](None)
 
@@ -76,7 +76,7 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
         }
     }
 
-  def executeAction(sql: String, bind: BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity, generated: Option[String] = None): Long =
+  def executeAction[O](sql: String, bind: BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity, generated: Option[String] = None): O =
     withConnection { conn =>
       logger.info(sql)
       val (expanded, setValues) = bind(new SqlBindedStatementBuilder[PreparedStatement]).build(sql)
@@ -84,16 +84,16 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
       generated match {
         case None =>
           val ps = setValues(conn.prepareStatement(expanded))
-          ps.executeUpdate.toLong
+          ps.executeUpdate.toLong.asInstanceOf[O] // DO NOT PANIC, I'LL REMOVE IT
         case Some(column) =>
           val ps = setValues(conn.prepareStatement(expanded, Array(column)))
           val rs = ps.executeUpdate
-          extractResult(ps.getGeneratedKeys, _.getLong(1)).head
+          extractResult(ps.getGeneratedKeys, _.getLong(1).asInstanceOf[O]).head // DO NOT PANIC, I'LL REMOVE IT
       }
     }
 
-  def executeActionBatch[T](sql: String, bindParams: T => BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = (_: T) => identity[BindedStatementBuilder[PreparedStatement]] _,
-                            generated: Option[String] = None): ActionApply[T] = {
+  def executeActionBatch[T, O](sql: String, bindParams: T => BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = (_: T) => identity[BindedStatementBuilder[PreparedStatement]] _,
+                               generated: Option[String] = None): ActionApply[T, O] = {
     val func = { (values: List[T]) =>
       withConnection { conn =>
         val groups = values.map(bindParams(_)(new SqlBindedStatementBuilder[PreparedStatement]).build(sql)).groupBy(_._1)
@@ -104,8 +104,8 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
             set(ps)
             ps.addBatch
           }
-          val updateCount = ps.executeBatch.toList.map(_.toLong)
-          generated.fold(updateCount)(_ => extractResult(ps.getGeneratedKeys, _.getLong(1)))
+          val updateCount = ps.executeBatch.toList.map(_.toLong.asInstanceOf[O]) // DO NOT PANIC, I'LL REMOVE IT
+          generated.fold(updateCount)(_ => extractResult(ps.getGeneratedKeys, _.getLong(1).asInstanceOf[O])) // DO NOT PANIC, I'LL REMOVE IT
         }).flatten
       }
     }

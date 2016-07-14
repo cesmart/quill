@@ -48,12 +48,12 @@ class MirrorContext
 
   def transaction[T](f: MirrorContext => T) = f(this)
 
-  def executeAction(ast: Ast, bindParams: Row => Row = identity, returning: Option[String] = None) =
+  def executeAction[O](ast: Ast, bindParams: Row => Row = identity, returning: Option[String] = None) =
     ActionMirror(ast, bindParams(Row()), returning)
 
   case class BatchActionMirror(ast: Ast, bindList: List[Row], returning: Option[String])
 
-  def executeActionBatch[T](ast: Ast, bindParams: T => Row => Row = (_: T) => identity[Row] _, returning: Option[String] = None) =
+  def executeActionBatch[T, O](ast: Ast, bindParams: T => Row => Row = (_: T) => identity[Row] _, returning: Option[String] = None) =
     (values: List[T]) =>
       BatchActionMirror(ast, values.map(bindParams).map(_(Row())), returning)
 

@@ -29,7 +29,7 @@ trait ActionMacro extends EncodingMacro {
     functionParams match {
       case Nil =>
         val encodedParams = EncodeParams[S](c)(inPlaceParams, collection.Map())
-        expandedTreeSingle(quotedTree, action, inPlaceParams.map(_._1).toList, encodedParams)
+        expandedTreeSingle(quotedTree, action, inPlaceParams.map(_._1).toList, encodedParams, t.tpe)
 
       case List((param, tpe)) if (t.tpe.erasure <:< c.weakTypeOf[CoreDsl#UnassignedAction[Any, Any]].erasure) =>
         val encodingValue = encoding(param, Encoding.inferEncoder[S](c))(c.WeakTypeTag(tpe))
@@ -38,21 +38,21 @@ trait ActionMacro extends EncodingMacro {
         val assignedAction = AssignedAction(action, idents.map(k => Assignment(Ident("x"), k.name, k)))
         val encodedParams = EncodeParams[S](c)(inPlaceParams, bindings.toMap)
 
-        expandedTreeBatch(quotedTree, assignedAction, idents.toList ++ inPlaceParams.map(_._1), List(tpe), encodedParams)
+        expandedTreeBatch(quotedTree, assignedAction, idents.toList ++ inPlaceParams.map(_._1), List(tpe), encodedParams, t.tpe)
 
       case functionParams =>
         val encodedParams = EncodeParams[S](c)(bindingMap(functionParams) ++ inPlaceParams, collection.Map())
-        expandedTreeBatch(quotedTree, action, functionParams.map(_._1) ++ inPlaceParams.map(_._1), functionParams.map(_._2), encodedParams)
+        expandedTreeBatch(quotedTree, action, functionParams.map(_._1) ++ inPlaceParams.map(_._1), functionParams.map(_._2), encodedParams, t.tpe)
     }
 
-  private def expandedTreeSingle(quotedTree: Tree, action: Ast, idents: List[Ident], encodedParams: Tree) = {
+  private def expandedTreeSingle(quotedTree: Tree, action: Ast, idents: List[Ident], encodedParams: Tree, bodyTpe: Type) = {
     q"""
     {
       val quoted = $quotedTree
       val (sql, bindings: List[io.getquill.ast.Ident], generated) =
         ${prepare(action, idents)}
 
-      ${c.prefix}.executeAction(
+      ${c.prefix}.executeAction[$bodyTpe](
         sql,
         $encodedParams(bindings.map(_.name)),
         generated
@@ -61,14 +61,14 @@ trait ActionMacro extends EncodingMacro {
     """
   }
 
-  private def expandedTreeBatch(quotedTree: Tree, action: Ast, idents: List[Ident], paramsTypes: List[Type], encodedParams: Tree) = {
+  private def expandedTreeBatch(quotedTree: Tree, action: Ast, idents: List[Ident], paramsTypes: List[Type], encodedParams: Tree, bodyTpe: Type) = {
     q"""
     {
       val quoted = $quotedTree
       val (sql, bindings: List[io.getquill.ast.Ident], generated) =
         ${prepare(action, idents)}
 
-      ${c.prefix}.executeActionBatch[(..$paramsTypes)](
+      ${c.prefix}.executeActionBatch[(..$paramsTypes), $bodyTpe](
         sql,
         value => $encodedParams(bindings.map(_.name)),
         generated

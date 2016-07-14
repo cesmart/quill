@@ -29,7 +29,7 @@ trait ActionMacro extends EncodingMacro {
     functionParams match {
       case Nil =>
         val encodedParams = EncodeParams[S](c)(inPlaceParams, collection.Map())
-        expandedTreeSingle(quotedTree, action, inPlaceParams.map(_._1).toList, encodedParams, t.tpe)
+        expandedTreeSingle(quotedTree, action, inPlaceParams.map(_._1).toList, encodedParams, bodyType(t.tpe))
 
       case List((param, tpe)) if (t.tpe.erasure <:< c.weakTypeOf[CoreDsl#UnassignedAction[Any, Any]].erasure) =>
         val encodingValue = encoding(param, Encoding.inferEncoder[S](c))(c.WeakTypeTag(tpe))
@@ -38,11 +38,11 @@ trait ActionMacro extends EncodingMacro {
         val assignedAction = AssignedAction(action, idents.map(k => Assignment(Ident("x"), k.name, k)))
         val encodedParams = EncodeParams[S](c)(inPlaceParams, bindings.toMap)
 
-        expandedTreeBatch(quotedTree, assignedAction, idents.toList ++ inPlaceParams.map(_._1), List(tpe), encodedParams, t.tpe)
+        expandedTreeBatch(quotedTree, assignedAction, idents.toList ++ inPlaceParams.map(_._1), List(tpe), encodedParams, bodyType(t.tpe))
 
       case functionParams =>
         val encodedParams = EncodeParams[S](c)(bindingMap(functionParams) ++ inPlaceParams, collection.Map())
-        expandedTreeBatch(quotedTree, action, functionParams.map(_._1) ++ inPlaceParams.map(_._1), functionParams.map(_._2), encodedParams, t.tpe)
+        expandedTreeBatch(quotedTree, action, functionParams.map(_._1) ++ inPlaceParams.map(_._1), functionParams.map(_._2), encodedParams, bodyType(t.tpe))
     }
 
   private def expandedTreeSingle(quotedTree: Tree, action: Ast, idents: List[Ident], encodedParams: Tree, bodyTpe: Type) = {
@@ -76,6 +76,12 @@ trait ActionMacro extends EncodingMacro {
     }
     """
   }
+
+  private def bodyType(tpe: Type): Type =
+    if (tpe <:< c.typeOf[CoreDsl#Action[_, _]]) {
+      tpe.baseType(c.typeOf[CoreDsl#Action[_, _]].typeSymbol).typeArgs(1)
+    } else
+      fail("This is a bug, didnt work")
 
   private def bindingMap(value: Value, option: Boolean = false): List[(Ident, (Tree, Tree))] =
     value match {

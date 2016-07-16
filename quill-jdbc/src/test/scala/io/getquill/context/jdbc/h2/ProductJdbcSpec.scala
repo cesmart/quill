@@ -18,8 +18,9 @@ class ProductJdbcSpec extends ProductSpec {
       H2 does not support returning generated keys for batch insert.
       So we have to insert one entry at a time in order to get the generated values.
      */
-      val inserted = productEntries.map(product => testContext.run(productInsert)(product))
-      val product = testContext.run(productById(inserted(2))).head
+      val inserted = productEntries.map(product => testContext.run(productInsert)(List(product))).flatten
+      val id: Long = inserted(2)
+      val product = testContext.run(productById(id)).head
       product.description mustEqual productEntries(2).description
       product.id mustEqual inserted(2)
     }

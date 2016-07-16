@@ -21,7 +21,7 @@ import scala.util.DynamicVariable
 
 import io.getquill.context.jdbc.JdbcDecoders
 import io.getquill.context.jdbc.JdbcEncoders
-import io.getquill.context.jdbc.ActionApply
+//import io.getquill.context.jdbc.ActionApply
 
 class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource with Closeable)
   extends SqlContext[D, N, ResultSet, BindedStatementBuilder[PreparedStatement]]
@@ -85,19 +85,22 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
       returning.fold(updateCounts)(_ => extractResult(ps.getGeneratedKeys, _.getLong(1)))
     }
 
-  def executeAction[O](sql: String, bind: BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity, returning: Option[String] = None)(implicit returnAction: ReturnAction[O]): O =
+  def executeAction[O: ReturnAction](sql: String, bind: BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity, returning: Option[String] = None)(implicit returnAction: ReturnAction[O]): O =
     withConnection { conn =>
       logger.info(sql)
       val (expanded, setValues) = bind(new SqlBindedStatementBuilder[PreparedStatement]).build(sql)
       logger.info(expanded)
 
-      val ps = returning.fold(conn.prepareStatement(sql))(c => conn.prepareStatement(sql, Array(c)))
+      val ps = setValues(returning.fold(conn.prepareStatement(sql))(c => conn.prepareStatement(sql, Array(c))))
       val updateCount = ps.executeUpdate.toLong
+      val returnAction = implicitly[ReturnAction[O]]
       returnAction(List(updateCount), returning, ps).head
     }
 
-  def executeActionBatch[T, O](sql: String, bindParams: T => BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = (_: T) => identity[BindedStatementBuilder[PreparedStatement]] _,
-                               returning: Option[String] = None)(implicit returnAction: ReturnAction[O]): ActionApply[T, O] = {
+  /* DON NOT PANIC, THIS IS NOT THE FINAL SOLUTOIN */
+  def executeActionBatch[T, O: ReturnAction](sql: String, bindParams: T => BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = (_: T) => identity[BindedStatementBuilder[PreparedStatement]] _,
+                                             returning: Option[String] = None)(): List[T] => List[O] = {
+    val returnAction = implicitly[ReturnAction[O]]
     val func = { (values: List[T]) =>
       withConnection { conn =>
         val groups = values.map(bindParams(_)(new SqlBindedStatementBuilder[PreparedStatement]).build(sql)).groupBy(_._1)
@@ -113,7 +116,8 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
         }).flatten
       }
     }
-    new ActionApply(func)
+    //new ActionApply(func)
+    func
   }
 
   def executeQuery[T](sql: String, extractor: ResultSet => T = identity[ResultSet] _, bind: BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity): List[T] =

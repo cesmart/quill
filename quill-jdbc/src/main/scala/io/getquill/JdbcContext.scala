@@ -6,10 +6,10 @@ import java.io.Closeable
 import java.sql.{ Connection, PreparedStatement, ResultSet }
 
 import org.slf4j.LoggerFactory
+
 import scala.annotation.tailrec
 import scala.util.Try
 import scala.util.control.NonFatal
-
 import io.getquill.context.BindedStatementBuilder
 import io.getquill.context.sql.SqlBindedStatementBuilder
 import io.getquill.context.sql.SqlContext
@@ -18,9 +18,11 @@ import io.getquill.util.LoadConfig
 import javax.sql.DataSource
 
 import scala.util.DynamicVariable
-
 import io.getquill.context.jdbc.JdbcDecoders
 import io.getquill.context.jdbc.JdbcEncoders
+
+import scala.reflect.runtime.universe._
+
 //import io.getquill.context.jdbc.ActionApply
 
 class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource with Closeable)
@@ -78,14 +80,12 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
         }
     }
 
-  type ReturnAction[O] = (List[Long], Option[String], PreparedStatement) => List[O]
-
-  implicit val returnActionLong: ReturnAction[Long] =
-    (updateCounts: List[Long], returning: Option[String], ps: PreparedStatement) => {
-      returning.fold(updateCounts)(_ => extractResult(ps.getGeneratedKeys, _.getLong(1)))
-    }
-
-  def executeAction[O: ReturnAction](sql: String, bind: BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity, returning: Option[String] = None)(implicit returnAction: ReturnAction[O]): O =
+  def executeAction[O](
+    sql:                String,
+    bind:               BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity,
+    returning:          Option[String]                                                                         = None,
+    returningExtractor: ResultSet => O                                                                         = identity[ResultSet] _
+  ): O =
     withConnection { conn =>
       logger.info(sql)
       val (expanded, setValues) = bind(new SqlBindedStatementBuilder[PreparedStatement]).build(sql)
@@ -93,14 +93,18 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
 
       val ps = setValues(returning.fold(conn.prepareStatement(sql))(c => conn.prepareStatement(sql, Array(c))))
       val updateCount = ps.executeUpdate.toLong
-      val returnAction = implicitly[ReturnAction[O]]
-      returnAction(List(updateCount), returning, ps).head
+      returning match {
+        case None    => updateCount.asInstanceOf[O] // TODO: get rid of this ugly asInstanceOf
+        case Some(_) => extractResult(ps.getGeneratedKeys, returningExtractor).head
+      }
     }
 
-  /* DON NOT PANIC, THIS IS NOT THE FINAL SOLUTOIN */
-  def executeActionBatch[T, O: ReturnAction](sql: String, bindParams: T => BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = (_: T) => identity[BindedStatementBuilder[PreparedStatement]] _,
-                                             returning: Option[String] = None)(): List[T] => List[O] = {
-    val returnAction = implicitly[ReturnAction[O]]
+  def executeActionBatch[T, O](
+    sql:                String,
+    bindParams:         T => BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = (_: T) => identity[BindedStatementBuilder[PreparedStatement]] _,
+    returning:          Option[String]                                                                              = None,
+    returningExtractor: ResultSet => O                                                                              = identity[ResultSet] _
+  ): List[T] => List[O] = {
     val func = { (values: List[T]) =>
       withConnection { conn =>
         val groups = values.map(bindParams(_)(new SqlBindedStatementBuilder[PreparedStatement]).build(sql)).groupBy(_._1)
@@ -112,7 +116,10 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
             ps.addBatch
           }
           val updateCount = ps.executeBatch.toList.map(_.toLong)
-          returnAction(updateCount, returning, ps)
+          returning match {
+            case None    => updateCount.asInstanceOf[List[O]]
+            case Some(_) => extractResult(ps.getGeneratedKeys, returningExtractor)
+          }
         }).flatten
       }
     }
@@ -120,7 +127,8 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
     func
   }
 
-  def executeQuery[T](sql: String, extractor: ResultSet => T = identity[ResultSet] _, bind: BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity): List[T] =
+  def executeQuery[T](sql: String, extractor: ResultSet => T = identity[ResultSet] _,
+                      bind: BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = identity): List[T] =
     withConnection { conn =>
       val (expanded, setValues) = bind(new SqlBindedStatementBuilder[PreparedStatement]).build(sql)
       logger.info(expanded)

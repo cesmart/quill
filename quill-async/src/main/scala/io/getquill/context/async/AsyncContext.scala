@@ -58,13 +58,19 @@ abstract class AsyncContext[D <: SqlIdiom, N <: NamingStrategy, C <: Connection]
       f(TransactionalExecutionContext(ec, c))
     }
 
-  def executeAction[O](sql: String, bind: BindedStatementBuilder[List[Any]] => BindedStatementBuilder[List[Any]] = identity, generated: Option[String] = None)(implicit ec: ExecutionContext) = {
+  def executeAction[O](sql: String,
+                       bind: BindedStatementBuilder[List[Any]] => BindedStatementBuilder[List[Any]] = identity,
+                       generated: Option[String] = None,
+                       returningExtractor: RowData => O                                                                              = identity[RowData] _)(implicit ec: ExecutionContext) = {
     logger.info(sql)
     val (expanded, params) = bind(new SqlBindedStatementBuilder).build(sql)
     withConnection(_.sendPreparedStatement(expandAction(expanded, generated), params(List()))).map(extractActionResult(generated)(_))
   }
 
-  def executeActionBatch[T, O](sql: String, bindParams: T => BindedStatementBuilder[List[Any]] => BindedStatementBuilder[List[Any]] = (_: T) => identity[BindedStatementBuilder[List[Any]]] _, generated: Option[String] = None)(implicit ec: ExecutionContext): ActionApply[T] = {
+  def executeActionBatch[T, O](sql: String,
+                               bindParams: T => BindedStatementBuilder[List[Any]] => BindedStatementBuilder[List[Any]] = (_: T) => identity[BindedStatementBuilder[List[Any]]] _,
+                               generated: Option[String] = None,
+                               returningExtractor: RowData => O                                                                              = identity[RowData] _)(implicit ec: ExecutionContext): ActionApply[T] = {
     def run(values: List[T]): Future[List[Long]] =
       values match {
         case Nil =>

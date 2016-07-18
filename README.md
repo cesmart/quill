@@ -26,7 +26,7 @@ Quotation
 Introduction
 ------------
 
-The QDSL allows the user to write plain Scala code, leveraging scala's syntax and type system. Quotations are created using the `quote` method and can contain any excerpt of code that uses supported operations. To create quotations, first create a context instance. Please see the [context](#context) section for more details on the different context available.
+The QDSL allows the user to write plain Scala code, leveraging scala's syntax and type system. Quotations are created using the `quote` method and can contain any excerpt of code that uses supported operations. To create quotations, first create a context instance. Please see the [context](#contexts) section for more details on the different context available.
 
 For this documentation, a special type of context that acts as a [mirror](#mirror-context) is used:
 
@@ -922,8 +922,58 @@ Quill provides mirror context for test purposes. Instead of running the query, m
 - `io.getquill.SqlMirrorContext`: Mirrors the SQL query
 - `io.getquill.CassandraMirrorContext`: Mirrors the CQL query
 
+Dependent contexts
+------------------
+
+The context instance provides all methods and types to interact with quotations and the database. Depending on how the context import happens, Scala won't be able to infer that the types are compatible.
+
+For instance, this example **will not** compile:
+
+```
+class MyContext extends SqlMirrorContext
+
+case class MySchema(c: MyContext) {
+
+  import c._
+  val people = quote {
+
+    query[Person].schema(_.entity("people"))
+  }
+}
+
+case class MyDao(c: MyContext, schema: MySchema) {
+
+  def allPeople = 
+    c.run(schema.people)
+// ERROR: [T](quoted: MyDao.this.c.Quoted[MyDao.this.c.Query[T]])MyDao.this.c.QueryResult[T]
+ cannot be applied to (MyDao.this.schema.c.Quoted[MyDao.this.schema.c.EntityQuery[Person]]{def quoted: io.getquill.ast.ConfiguredEntity; def ast: io.getquill.ast.ConfiguredEntity; def id1854281249(): Unit; val bindings: Object})
+}
+```
+
+One alternative to work with this kind of context import is use traits with abstract context values:
+
+```scala
+class MyContext extends SqlMirrorContext
+
+trait MySchema {
+
+  val c: MyContext
+  import c._
+
+  val people = quote {
+    query[Person].schema(_.entity("people"))
+  }
+}
+
+case class MyDao(c: MyContext) extends MySchema {
+
+  def allPeople = 
+    c.run(people)
+}
+```
+
 SQL Contexts
------------
+------------
 
 Contexts represent the database and provide an execution interface for queries. Example:
 
@@ -972,14 +1022,14 @@ The transformations are applied from left to right.
 
 The string passed to the context is used as the key to obtain configurations using the [typesafe config](http://github.com/typesafehub/config) library.
 
-Additionally, any member of a context can be overriden. Example:
+Additionally, the contexts provide multiple constructors. For instance, with `JdbcContext` it's possible to specify a `DataSource` directly, without using the configuration:
 
-```
-lazy val ctx = new JdbcContext[MySQLDialect, SnakeCase]("db") {
-  override def dataContext = ??? // create the datasource manually
-}
+```scala
+def createDataSource: javax.sql.DataSource with java.io.Closeable = ???
 
+lazy val ctx = new JdbcContext[MySQLDialect, SnakeCase](createDataSource)
 ```
+
 ##### quill-jdbc
 
 Quill uses [HikariCP](https://github.com/brettwooldridge/HikariCP) for connection pooling. Please refer to HikariCP's [documentation](https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby) for a detailed explanation of the available configurations.
@@ -1005,7 +1055,7 @@ sbt dependencies
 ```
 libraryDependencies ++= Seq(
   "mysql" % "mysql-connector-java" % "5.1.38",
-  "io.getquill" %% "quill-jdbc" % "0.7.1-SNAPSHOT"
+  "io.getquill" %% "quill-jdbc" % "0.8.1-SNAPSHOT"
 )
 ```
 
@@ -1032,7 +1082,7 @@ sbt dependencies
 ```
 libraryDependencies ++= Seq(
   "org.postgresql" % "postgresql" % "9.4.1208",
-  "io.getquill" %% "quill-jdbc" % "0.7.1-SNAPSHOT"
+  "io.getquill" %% "quill-jdbc" % "0.8.1-SNAPSHOT"
 )
 ```
 
@@ -1058,7 +1108,7 @@ sbt dependencies
 ```
 libraryDependencies ++= Seq(
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
-  "io.getquill" %% "quill-jdbc" % "0.7.1-SNAPSHOT"
+  "io.getquill" %% "quill-jdbc" % "0.8.1-SNAPSHOT"
 )
 ```
 
@@ -1117,7 +1167,7 @@ Note that the global execution context is renamed to ec.
 sbt dependencies
 ```
 libraryDependencies ++= Seq(
-  "io.getquill" %% "quill-async" % "0.7.1-SNAPSHOT"
+  "io.getquill" %% "quill-async" % "0.8.1-SNAPSHOT"
 )
 ```
 
@@ -1144,7 +1194,7 @@ ctx.poolValidationInterval=100
 sbt dependencies
 ```
 libraryDependencies ++= Seq(
-  "io.getquill" %% "quill-async" % "0.7.1-SNAPSHOT"
+  "io.getquill" %% "quill-async" % "0.8.1-SNAPSHOT"
 )
 ```
 
@@ -1184,7 +1234,7 @@ The body of `transaction` can contain calls to other methods and multiple `run` 
 sbt dependencies
 ```
 libraryDependencies ++= Seq(
-  "io.getquill" %% "quill-finagle-mysql" % "0.7.1-SNAPSHOT"
+  "io.getquill" %% "quill-finagle-mysql" % "0.8.1-SNAPSHOT"
 )
 ```
 
@@ -1212,7 +1262,7 @@ Cassandra Contexts
 sbt dependencies
 ```
 libraryDependencies ++= Seq(
-  "io.getquill" %% "quill-cassandra" % "0.7.1-SNAPSHOT"
+  "io.getquill" %% "quill-cassandra" % "0.8.1-SNAPSHOT"
 )
 ```
 

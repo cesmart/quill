@@ -21,8 +21,6 @@ import scala.util.DynamicVariable
 import io.getquill.context.jdbc.JdbcDecoders
 import io.getquill.context.jdbc.JdbcEncoders
 
-import scala.reflect.runtime.universe._
-
 //import io.getquill.context.jdbc.ActionApply
 
 class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource with Closeable)
@@ -94,7 +92,7 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
       val ps = setValues(returning.fold(conn.prepareStatement(sql))(c => conn.prepareStatement(sql, Array(c))))
       val updateCount = ps.executeUpdate.toLong
       returning match {
-        case None    => updateCount.asInstanceOf[O] // TODO: get rid of this ugly asInstanceOf
+        case None    => updateCount.asInstanceOf[O]
         case Some(_) => extractResult(ps.getGeneratedKeys, returningExtractor).head
       }
     }
@@ -104,7 +102,7 @@ class JdbcContext[D <: SqlIdiom, N <: NamingStrategy](dataSource: DataSource wit
     bindParams:         T => BindedStatementBuilder[PreparedStatement] => BindedStatementBuilder[PreparedStatement] = (_: T) => identity[BindedStatementBuilder[PreparedStatement]] _,
     returning:          Option[String]                                                                              = None,
     returningExtractor: ResultSet => O                                                                              = identity[ResultSet] _
-  ): List[T] => List[O] = {
+  ) = {
     val func = { (values: List[T]) =>
       withConnection { conn =>
         val groups = values.map(bindParams(_)(new SqlBindedStatementBuilder[PreparedStatement]).build(sql)).groupBy(_._1)

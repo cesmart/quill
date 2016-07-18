@@ -573,11 +573,11 @@ class AstShowSpec extends Spec {
     }
   }
 
-  "shows dynamic asts" - {
+  "shows dynamic asts" in {
     (Dynamic(1): Ast).show mustEqual "1"
   }
 
-  "shows if" - {
+  "shows if" in {
     val q = quote {
       (i: Int) =>
         if (i > 10) "a" else "b"
@@ -586,7 +586,7 @@ class AstShowSpec extends Spec {
       """if(i > 10) "a" else "b""""
   }
 
-  "shows distinct" - {
+  "shows distinct" in {
     val q = quote {
       query[TestEntity].distinct
     }

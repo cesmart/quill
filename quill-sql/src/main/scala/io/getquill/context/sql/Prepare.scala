@@ -2,9 +2,7 @@ package io.getquill.context.sql
 
 import io.getquill.ast._
 import io.getquill.context.sql.idiom.SqlIdiom
-import io.getquill.context.sql.norm.ExpandJoin
-import io.getquill.context.sql.norm.ExpandNestedQueries
-import io.getquill.context.sql.norm.MergeSecondaryJoin
+import io.getquill.context.sql.norm.{ ExpandJoin, ExpandNestedQueries, MergeSecondaryJoin, RemoveReturning }
 import io.getquill.NamingStrategy
 import io.getquill.norm._
 import io.getquill.util.Messages.fail

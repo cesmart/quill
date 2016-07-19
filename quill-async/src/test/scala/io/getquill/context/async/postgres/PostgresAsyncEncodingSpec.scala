@@ -74,4 +74,10 @@ class PostgresAsyncEncodingSpec extends EncodingSpec {
       }
     verify(Await.result(fut, Duration.Inf))
   }
+
+  "returning UUID" in {
+    val uuid = Await.result(testContext.run(insertBarCode)(barCodeEntry), Duration.Inf).head
+    val barCode = Await.result(testContext.run(findBarCodeByUuid(uuid.get)), Duration.Inf).head
+    verifyBarcode(barCode)
+  }
 }

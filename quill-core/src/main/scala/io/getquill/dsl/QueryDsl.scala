@@ -70,10 +70,12 @@ private[dsl] trait QueryDsl {
   }
 
   implicit class InsertUnassignedAction[T](i: T => UnassignedAction[T, _] with Insert[T, _]) {
+    @compileTimeOnly(NonQuotedException.message)
     def returning[R](f: T => R): T => UnassignedAction[T, R] with Insert[T, R] = NonQuotedException()
   }
 
   implicit class InsertAssignedAction[T](i: Insert[T, _]) {
+    @compileTimeOnly(NonQuotedException.message)
     def returning[R](f: T => R): Insert[T, R] = NonQuotedException()
   }
 

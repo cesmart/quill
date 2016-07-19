@@ -1,4 +1,4 @@
-package io.getquill.norm
+package io.getquill.context.sql.norm
 
 import io.getquill.ast._
 

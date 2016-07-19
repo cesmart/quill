@@ -21,7 +21,7 @@ class ProductPostgresAsyncSpec extends ProductSpec {
 
   "Product" - {
     "Insert multiple products" in {
-      val inserted = await(Future.sequence(productEntries.map(product => testContext.run(productInsert)(product))))
+      val inserted = await(Future.sequence(productEntries.map(product => testContext.run(productInsert)(List(product)).map(_.head))))
       val product = await(testContext.run(productById(inserted(2)))).head
       product.description mustEqual productEntries(2).description
       product.id mustEqual inserted(2)
